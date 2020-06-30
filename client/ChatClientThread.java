@@ -5,10 +5,10 @@ import java.io.*;
 
 public class ChatClientThread extends Thread
 {  private Socket           socket   = null;
-    private ChatClient       client   = null;
+    private Client       client   = null;
     private DataInputStream  streamIn = null;
 
-    public ChatClientThread(ChatClient _client, Socket _socket)
+    public ChatClientThread(Client _client, Socket _socket)
     {  client   = _client;
         socket   = _socket;
         open();
