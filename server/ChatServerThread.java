@@ -11,6 +11,11 @@ public class ChatServerThread extends Thread
     private int uuId;
     private DataInputStream  streamIn  =  null;
     private DataOutputStream streamOut = null;
+    private boolean isCancelled = false;
+
+    public void cancel() {
+        isCancelled = true;
+    }
 
     public ChatServerThread(Server _server, Socket _socket)
     {  super();
@@ -28,7 +33,6 @@ public class ChatServerThread extends Thread
     catch(IOException ioe)
     {  System.out.println(ID + " ERROR sending: " + ioe.getMessage());
         server.remove(ID, uuId);
-        stop();
     }
     }
     public int getID()
@@ -41,15 +45,17 @@ public class ChatServerThread extends Thread
 
     public void run()
     {  System.out.println("Client " + uuId + " connected!");
-        while (true)
-        {  try
-        {  server.handle(ID, streamIn.readUTF(), uuId);
-        }
-        catch(IOException ioe)
-        {  System.out.println(ID + " ERROR reading: " + ioe.getMessage());
-            server.remove(ID, uuId);
-            stop();
-        }
+    System.out.println("Server: authorize or register");
+        while (true) {
+                if (isCancelled) {
+                    return;
+                }
+                try {
+                    server.handle(ID, streamIn.readUTF(), uuId);
+                } catch (IOException ioe) {
+                    System.out.println(ID + " ERROR reading: " + ioe.getMessage());
+                    server.remove(ID, uuId);
+                }
         }
     }
     public void open() throws IOException
