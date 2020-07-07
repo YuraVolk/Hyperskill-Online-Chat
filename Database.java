@@ -41,7 +41,26 @@ public class Database {
         return users.containsKey(username);
     }
 
+    public String getPassword(String username) {
+        return users.get(username);
+    }
+
     public Map<String, String> getUsers() {
         return users;
+    }
+
+    public int getUserPosition(String key) {
+        List keys = new ArrayList(users.keySet());
+        for (int i = 0; i < keys.size(); i++) {
+            if (keys.get(i).equals(key)) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    public void addMessage(String name, String line, int senderId, int addresseeId) {
+        correspondenceMessages.get(senderId).get(addresseeId).get(0).addMessage(name, line);
     }
 }

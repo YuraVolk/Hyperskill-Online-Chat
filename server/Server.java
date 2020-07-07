@@ -96,7 +96,8 @@ class clientThread extends Thread {
     private Socket clientSocket = null;
     private final ArrayList<clientThread> clients;
     private boolean close = false;
-    private boolean authorized = false;
+    boolean authorized = false;
+    private int receptientId = -1;
 
     public clientThread(Socket clientSocket, ArrayList<clientThread> clients) {
 
@@ -172,7 +173,7 @@ class clientThread extends Thread {
 
                 /*this.os.writeObject("Directory Created");
                 this.os.flush();*/
-            synchronized(this)
+           /* synchronized(this)
             {
 
                 for (clientThread curr_client : clients)
@@ -190,8 +191,8 @@ class clientThread extends Thread {
 
                     }
 
-                }*/
-            }
+                }
+            }*/
 
             /* Start the conversation. */
 
@@ -205,7 +206,7 @@ class clientThread extends Thread {
 
 
                 if (line.startsWith("/exit")) {
-
+                    authorized = false;
                     break;
                 } else if (line.startsWith("/registration")) {
                     String[] words = line.split(" ");
@@ -218,34 +219,75 @@ class clientThread extends Thread {
                             this.os.flush();
                         } else {
                             Server.database.addUserChat(words[1], words[2]);
+                            this.os.writeObject("Server: you are registered successfully!");
+                            this.os.flush();
                         }
                     }
                 } else if (line.startsWith("/auth")) {
+                    String[] words = line.split(" ");
 
+
+                    if (Server.database.usernameExists(words[1])) {
+                        if (Server.database.getPassword(words[1]).equals(words[2])) {
+                            authorized = true;
+                            this.os.writeObject("Server: you are authorized successfully!");
+                            name = words[1];
+                            clientName = words[1];
+                        } else {
+                            this.os.writeObject("Server: incorrect password!");
+                        }
+                        this.os.flush();
+                    } else {
+                        this.os.writeObject("Server: incorrect login!");
+                        this.os.flush();
+                    }
                 } else if (line.startsWith("/chat")) {
                     if (!authorized) {
                         this.os.writeObject("Server: you are not in the chat!");
                         this.os.flush();
                     } else {
-
+                        int thisId = Server.database.getUserPosition(clientName);
+                        String[] words = line.split(" ");
+                        int addresseeId = Server.database.getUserPosition(words[1]);
+                        if (addresseeId == -1) {
+                            this.os.writeObject("Server: the user is not online!");
+                            this.os.flush();
+                        } else {
+                            receptientId = addresseeId;
+                        }
                     }
                 } else if (line.startsWith("/list")) {
-                    if (!authorized) {
-                        this.os.writeObject("Server: you are not in the chat!");
-                        this.os.flush();
-                    } else {
-
+                    List<clientThread> onlineUsers = new ArrayList<>();
+                    for (clientThread thread : clients) {
+                        if (thread.authorized && thread != this) {
+                            onlineUsers.add(thread);
+                        }
                     }
+
+                    if (onlineUsers.size() == 0) {
+                        this.os.writeObject("Server: no one online");
+                    } else {
+                        StringBuilder builder = new StringBuilder();
+                        builder.append("Server: online");
+                        for (clientThread user : onlineUsers) {
+                            builder.append(" ");
+                            builder.append(user.clientName);
+                        }
+                        this.os.writeObject(builder.toString());
+                    }
+                    this.os.flush();
+
                 } else if (line.startsWith("/")) {
                     this.os.writeObject("Server: incorrect command!");
                     this.os.flush();
                 } else {
                     if (!authorized) {
                         this.os.writeObject("Server: you are not in the chat!");
-                        this.os.flush();
                     } else {
                         broadcast(line,name, true);
+                        this.os.writeObject("" + name + ": " + line);
                     }
+                    this.os.flush();
 
                 }
 
@@ -343,7 +385,7 @@ class clientThread extends Thread {
             byte[] file_data = (byte[]) is.readObject();
             synchronized(this){
                 for (clientThread curr_client : clients) {
-                    if (curr_client != null && curr_client.clientName != null && curr_client.clientName!=this.clientName)
+                    if (curr_client != null && curr_client.clientName != null)
                     {
                         curr_client.os.writeObject("Sending_File:"+line.split("\\s",2)[1].substring(line.split("\\s",2)[1].lastIndexOf(File.separator)+1));
                         curr_client.os.writeObject(file_data);
