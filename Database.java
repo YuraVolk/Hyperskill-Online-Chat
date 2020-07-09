@@ -62,5 +62,10 @@ public class Database {
 
     public void addMessage(String name, String line, int senderId, int addresseeId) {
         correspondenceMessages.get(senderId).get(addresseeId).get(0).addMessage(name, line);
+        correspondenceMessages.get(addresseeId).get(senderId).get(0).addMessage(name, line);
+    }
+
+    public MessageList getMessages(int id1, int id2) {
+        return correspondenceMessages.get(id1).get(id2).get(0);
     }
 }

@@ -1,6 +1,8 @@
 package chat.server;
 
 import chat.Database;
+import chat.Message;
+import chat.MessageList;
 import javafx.util.Pair;
 
 import javax.xml.crypto.Data;
@@ -28,6 +30,7 @@ public class Server {
     public static Database database = new Database();
     public static List<Pair<String, String>> messages = new ArrayList<>();
     public static ArrayList<clientThread> clients = new ArrayList<clientThread>();
+
 
     public static void main(String args[]) {
 
@@ -98,6 +101,8 @@ class clientThread extends Thread {
     private boolean close = false;
     boolean authorized = false;
     private int receptientId = -1;
+    private int thisId = -1;
+    String chateeName = "";
 
     public clientThread(Socket clientSocket, ArrayList<clientThread> clients) {
 
@@ -233,6 +238,7 @@ class clientThread extends Thread {
                             this.os.writeObject("Server: you are authorized successfully!");
                             name = words[1];
                             clientName = words[1];
+                            thisId = Server.database.getUserPosition(clientName);
                         } else {
                             this.os.writeObject("Server: incorrect password!");
                         }
@@ -246,14 +252,22 @@ class clientThread extends Thread {
                         this.os.writeObject("Server: you are not in the chat!");
                         this.os.flush();
                     } else {
-                        int thisId = Server.database.getUserPosition(clientName);
+
                         String[] words = line.split(" ");
                         int addresseeId = Server.database.getUserPosition(words[1]);
+
                         if (addresseeId == -1) {
                             this.os.writeObject("Server: the user is not online!");
                             this.os.flush();
                         } else {
                             receptientId = addresseeId;
+                            chateeName = words[1];
+                            MessageList messageList = Server.database.getMessages(thisId, receptientId);
+                            System.out.println(messageList);
+                            for (MessageList.Message messageObject : messageList.getMessagesList()) {
+                                this.os.writeObject(messageObject.getMessage());
+                                this.os.flush();
+                            }
                         }
                     }
                 } else if (line.startsWith("/list")) {
@@ -284,8 +298,9 @@ class clientThread extends Thread {
                     if (!authorized) {
                         this.os.writeObject("Server: you are not in the chat!");
                     } else {
-                        broadcast(line,name, true);
+                        unicast(line, chateeName, receptientId, thisId);
                         this.os.writeObject("" + name + ": " + line);
+                        System.out.println(receptientId);
                     }
                     this.os.flush();
 
@@ -428,7 +443,7 @@ class clientThread extends Thread {
 
     /**** This function transfers message or files to a particular client connected to the server ***/
 
-    void unicast(String line, String name) throws IOException, ClassNotFoundException {
+    void unicast(String line, String name, int receptientId, int thisClientId) throws IOException, ClassNotFoundException {
 
 
 
@@ -439,11 +454,13 @@ class clientThread extends Thread {
         for (clientThread curr_client : clients) {
 
             if (curr_client != null && curr_client.clientName != null
-                    && curr_client.clientName.substring(1).equals(name)) {
-                System.out.println("yay");
-                curr_client.os.writeObject("<" + name + "> " + line);
-                curr_client.os.flush();
+                    && curr_client.clientName.equals(name)) {
+                if (curr_client.chateeName.equals(this.clientName)) {
+                    curr_client.os.writeObject("" + this.clientName + ": " + line);
+                    curr_client.os.flush();
+                }
 
+                Server.database.addMessage(this.clientName, line, thisClientId, receptientId);
                         /*  System.out.println(this.clientName.substring(1) + " transferred a private message to client "+ curr_client.clientName.substring(1));
 
                             /* Echo this message to let the sender know the private message was sent.
