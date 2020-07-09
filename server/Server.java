@@ -168,11 +168,7 @@ class clientThread extends Thread {
          //   Server.database.addUserChat(name, "password");
         //    System.out.println(Server.database.getCorrespondenceMessages());
             //System.out.println("Client Name is " + name);
-            List<Pair<String, String>> message = Server.messages.subList(Math.max(Server.messages.size() - 10, 0), Server.messages.size());
-            for (Pair<String, String> line : message) {
-                this.os.writeObject("" + line.getKey() + ": " + line.getValue());
-                this.os.flush();
-            }
+
                 /*this.os.writeObject("*** Welcome " + name + " to our chat room ***\nEnter /quit to leave the chat room");
                 this.os.flush();*/
 

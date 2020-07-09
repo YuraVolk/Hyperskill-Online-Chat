@@ -36,7 +36,7 @@ public class Client implements Runnable {
             portNumber = Integer.valueOf(args[1]).intValue();
             //  System.out.println("Server: " + host + ", Port: " + portNumber);
         }
-        System.out.println("Client started!");
+        System.out.println("Client started!\nServer: authorize or register");
 
         /*
          * Open a socket on a given host and port. Open input and output streams.
