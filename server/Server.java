@@ -6,10 +6,7 @@ import chat.MessageList;
 import javafx.util.Pair;
 
 import javax.xml.crypto.Data;
-import java.io.File;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
 
@@ -36,6 +33,19 @@ public class Server {
 
         // The default port number.
         int portNumber = 1234;
+        Database base;
+
+        try {
+            FileInputStream fileIn = new FileInputStream("db.ser");
+            ObjectInputStream in = new ObjectInputStream(fileIn);
+            base = (Database) in.readObject();
+            in.close();
+            fileIn.close();
+            database = base;
+        } catch (Exception i) {
+            i.printStackTrace();
+        }
+
 
 
         if (args.length < 1)

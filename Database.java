@@ -1,16 +1,19 @@
 package chat;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.*;
 
-public class Database {
+public class Database implements java.io.Serializable {
     private List<List<List<MessageList>>> correspondenceMessages = new ArrayList<>();
     private Map<String, String> users = new LinkedHashMap<>();
 
-    public void addUserChat(String name, String password) {
+    public void addUserChat(String name, String password) throws IOException {
         users.put(name, password);
 
         if (correspondenceMessages.size() == 0) {
-           correspondenceMessages.add(new ArrayList<>(){{
+            correspondenceMessages.add(new ArrayList<>(){{
                 add(new ArrayList<>(){{
                     add(new MessageList());
                 }});
@@ -31,6 +34,7 @@ public class Database {
             correspondenceMessages.add(tempList);
         }
 
+        serialize();
     }
 
     public List<List<List<MessageList>>> getCorrespondenceMessages() {
@@ -60,9 +64,19 @@ public class Database {
         return -1;
     }
 
-    public void addMessage(String name, String line, int senderId, int addresseeId) {
+    public void addMessage(String name, String line, int senderId, int addresseeId) throws IOException {
         correspondenceMessages.get(senderId).get(addresseeId).get(0).addMessage(name, line);
         correspondenceMessages.get(addresseeId).get(senderId).get(0).addMessage(name, line);
+        serialize();
+    }
+
+    private void serialize() throws IOException {
+        FileOutputStream fileOut =
+                new FileOutputStream("db.ser");
+        ObjectOutputStream out = new ObjectOutputStream(fileOut);
+        out.writeObject(this);
+        out.close();
+        fileOut.close();
     }
 
     public MessageList getMessages(int id1, int id2) {

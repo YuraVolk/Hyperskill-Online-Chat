@@ -2,14 +2,15 @@ package chat;
 
 import javafx.util.Pair;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MessageList {
+public class MessageList implements Serializable {
 
-    public class Message {
+    public class Message implements Serializable {
         private String sender;
         private String message;
 
