@@ -8,12 +8,9 @@ import javafx.util.Pair;
 import javax.xml.crypto.Data;
 import java.io.*;
 import java.net.Socket;
-import java.util.ArrayList;
+import java.util.*;
 
 import java.net.ServerSocket;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /*
  * A chat server that delivers public and private messages and files.
@@ -29,7 +26,7 @@ public class Server {
     public static ArrayList<clientThread> clients = new ArrayList<clientThread>();
 
 
-    public static void main(String args[]) {
+    public static void main(String args[]) throws IOException {
 
         // The default port number.
         int portNumber = 1234;
@@ -43,7 +40,7 @@ public class Server {
             fileIn.close();
             database = base;
         } catch (Exception i) {
-            i.printStackTrace();
+
         }
 
 
@@ -67,13 +64,15 @@ public class Server {
         try {
             serverSocket = new ServerSocket(portNumber);
         } catch (IOException e) {
-            System.out.println("Server Socket cannot be created");
+        //    System.out.println("Server Socket cannot be created");
         }
 
         /*
          * Create a client socket for each connection and pass it to a new client
          * thread.
          */
+
+        database.addUserChat("admin", "12345678");
 
         int clientNum = 1;
         while (true) {
@@ -88,7 +87,7 @@ public class Server {
 
             } catch (IOException e) {
 
-                System.out.println("Client could not be connected");
+             //   System.out.println("Client could not be connected");
             }
 
 
@@ -101,7 +100,7 @@ public class Server {
  * This client thread class handles individual clients in their respective threads
  * by opening a separate input and output streams.
  */
-class clientThread extends Thread {
+class clientThread extends Thread implements Comparable<clientThread> {
 
     private String clientName = null;
     private ObjectInputStream is = null;
@@ -211,8 +210,8 @@ class clientThread extends Thread {
 
             /*  this.os.writeObject("");
                 this.os.flush();*/
-                System.out.println(Server.database.getCorrespondenceMessages());
-                System.out.println(Server.database.getUsers());
+               /* System.out.println(Server.database.getCorrespondenceMessages());
+                System.out.println(Server.database.getUsers());*/
                 String line = (String) is.readObject();
 
 
@@ -222,7 +221,7 @@ class clientThread extends Thread {
                 } else if (line.startsWith("/registration")) {
                     String[] words = line.split(" ");
                     if (Server.database.usernameExists(words[1])) {
-                        this.os.writeObject("Server: this login is already taken!");
+                        this.os.writeObject("Server: this login is already in use!");
                         this.os.flush();
                     } else {
                         if (words[2].length() < 8) {
@@ -232,6 +231,12 @@ class clientThread extends Thread {
                             Server.database.addUserChat(words[1], words[2]);
                             this.os.writeObject("Server: you are registered successfully!");
                             this.os.flush();
+
+                            //AUTH
+                            authorized = true;
+                            name = words[1];
+                            clientName = words[1];
+                            thisId = Server.database.getUserPosition(clientName);
                         }
                     }
                 } else if (line.startsWith("/auth")) {
@@ -269,7 +274,7 @@ class clientThread extends Thread {
                             receptientId = addresseeId;
                             chateeName = words[1];
                             MessageList messageList = Server.database.getMessages(thisId, receptientId);
-                            System.out.println(messageList);
+                         //   System.out.println(messageList);
                             for (MessageList.Message messageObject : messageList.getMessagesList()) {
                                 this.os.writeObject(messageObject.getMessage());
                                 this.os.flush();
@@ -284,11 +289,13 @@ class clientThread extends Thread {
                         }
                     }
 
+                    Collections.sort(onlineUsers);
+
                     if (onlineUsers.size() == 0) {
                         this.os.writeObject("Server: no one online");
                     } else {
                         StringBuilder builder = new StringBuilder();
-                        builder.append("Server: online");
+                        builder.append("Server: online:");
                         for (clientThread user : onlineUsers) {
                             builder.append(" ");
                             builder.append(user.clientName);
@@ -304,9 +311,14 @@ class clientThread extends Thread {
                     if (!authorized) {
                         this.os.writeObject("Server: you are not in the chat!");
                     } else {
-                        unicast(line, chateeName, receptientId, thisId);
-                        this.os.writeObject("" + name + ": " + line);
-                        System.out.println(receptientId);
+                        if (receptientId == -1) {
+                            this.os.writeObject("Server: use /list command to choose an user to text!");
+                        } else {
+                            unicast(line, chateeName, receptientId, thisId);
+                            this.os.writeObject("" + name + ": " + line);
+                        }
+
+                     //   System.out.println(receptientId);
                     }
                     this.os.flush();
 
@@ -481,4 +493,8 @@ class clientThread extends Thread {
     }
 
 
+    @Override
+    public int compareTo(clientThread clientThread) {
+        return this.clientName.compareTo(clientThread.clientName);
+    }
 }

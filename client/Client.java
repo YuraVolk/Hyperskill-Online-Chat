@@ -22,7 +22,7 @@ public class Client implements Runnable {
     private static BufferedInputStream bis = null;
     private static boolean closed = false;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
 
         // The default port.
         int portNumber = 1234;
@@ -61,11 +61,11 @@ public class Client implements Runnable {
 
                 /* Create a thread to read from the server. */
                 new Thread(new Client()).start();
+                String msg;
                 while (!closed) {
 
                     /* Read input from Client */
-
-                    String msg = (String) inputLine.readLine().trim();
+                    msg = inputLine.readLine().trim();
 
                     /* Check the input for private messages or files */
 
@@ -135,7 +135,9 @@ public class Client implements Runnable {
                         os.flush();
                     }
 
-
+                    if (msg.equals("/exit")) {
+                        break;
+                    }
                 }
 
                 /*
@@ -173,7 +175,7 @@ public class Client implements Runnable {
 
         try {
 
-
+            loop:
             while ((responseLine = (String) is.readObject()) != null)  {
 
                 /* Condition for Directory Creation */
@@ -227,7 +229,7 @@ public class Client implements Runnable {
                 else
                 {
                     if (responseLine.equals("/stop"))
-                        break;
+                        break loop;
                     System.out.println(responseLine);
                 }
 
@@ -238,12 +240,14 @@ public class Client implements Runnable {
             }
 
             closed = true;
-            System.exit(0);
+
+           // System.exit(0);
 
         } catch (IOException | ClassNotFoundException e) {
 
-            System.err.println("Server Process Stopped Unexpectedly!!");
-
         }
+
+
     }
+
 }

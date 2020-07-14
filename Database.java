@@ -8,9 +8,11 @@ import java.util.*;
 public class Database implements java.io.Serializable {
     private List<List<List<MessageList>>> correspondenceMessages = new ArrayList<>();
     private Map<String, String> users = new LinkedHashMap<>();
+    private Map<String, UserStatus> userStatus = new HashMap<>();
 
     public void addUserChat(String name, String password) throws IOException {
         users.put(name, password);
+        userStatus.put(name, new UserStatus());
 
         if (correspondenceMessages.size() == 0) {
             correspondenceMessages.add(new ArrayList<>(){{
@@ -35,6 +37,22 @@ public class Database implements java.io.Serializable {
         }
 
         serialize();
+    }
+
+    public void addModerator(String name) {
+        userStatus.put(name, userStatus.get(name).setType("moderator"));
+    }
+
+    public void addAdministrator(String name) {
+        userStatus.put(name, userStatus.get(name).setType("admin"));
+    }
+
+    public void removeModerator(String name) {
+        userStatus.put(name, userStatus.get(name).setType("user"));
+    }
+
+    public void ban(String name) {
+        userStatus.put(name, userStatus.get(name).setBanned(true));
     }
 
     public List<List<List<MessageList>>> getCorrespondenceMessages() {
