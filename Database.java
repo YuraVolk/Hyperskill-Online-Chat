@@ -55,6 +55,10 @@ public class Database implements java.io.Serializable {
         userStatus.put(name, userStatus.get(name).setBanned(true));
     }
 
+    public String getUserStatus(String name) {
+        return userStatus.get(name).getType();
+    }
+
     public List<List<List<MessageList>>> getCorrespondenceMessages() {
         return  correspondenceMessages;
     }

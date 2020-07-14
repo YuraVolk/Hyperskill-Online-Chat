@@ -1,6 +1,8 @@
 package chat;
 
-public class UserStatus {
+import java.io.Serializable;
+
+public class UserStatus implements Serializable {
     private boolean isBanned;
     private String type = "user";
 

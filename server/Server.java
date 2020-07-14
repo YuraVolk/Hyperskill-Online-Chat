@@ -304,6 +304,21 @@ class clientThread extends Thread implements Comparable<clientThread> {
                     }
                     this.os.flush();
 
+                } else if (line.startsWith("/kick")) {
+                    if (!authorized) {
+                        this.os.writeObject("Server: you are not in the chat!");
+                    } else {
+                        String[] words = line.split(" ", 2);
+                        if (Server.database.getUserStatus(this.clientName).equals("user")) {
+                            this.os.writeObject("Server: you are not a moderator or an admin!");
+                        } else {
+                            if (words[1].equals(this.clientName)) {
+                                this.os.writeObject("Server: you can’t kick yourself!");
+                            } else {
+                                this.os.writeObject(String.format("Server: %s was kicked!", words[1]));
+                            }
+                        }
+                    }
                 } else if (line.startsWith("/")) {
                     this.os.writeObject("Server: incorrect command!");
                     this.os.flush();
