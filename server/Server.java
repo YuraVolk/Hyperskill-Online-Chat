@@ -28,6 +28,8 @@ public class Server {
 
     public static void main(String args[]) throws IOException {
 
+
+
         // The default port number.
         int portNumber = 1234;
         Database base;
@@ -73,6 +75,7 @@ public class Server {
          */
 
         database.addUserChat("admin", "12345678");
+        database.addAdministrator("admin");
 
         int clientNum = 1;
         while (true) {
@@ -316,7 +319,15 @@ class clientThread extends Thread implements Comparable<clientThread> {
                                 this.os.writeObject("Server: you can’t kick yourself!");
                             } else {
                                 this.os.writeObject(String.format("Server: %s was kicked!", words[1]));
+                                for (clientThread thread : clients) {
+                                    if (thread.clientName.equals(words[1])) {
+                                        thread.authorized = false;
+                                        thread.os.writeObject("Server: you have been kicked out of the server!");
+                                    }
+                                }
                             }
+
+                            this.os.flush();
                         }
                     }
                 } else if (line.startsWith("/")) {
