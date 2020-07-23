@@ -59,6 +59,10 @@ public class Database implements java.io.Serializable {
         return userStatus.get(name).getType();
     }
 
+    public boolean isBanned(String name) {
+        return userStatus.get(name).isBanned();
+    }
+
     public List<List<List<MessageList>>> getCorrespondenceMessages() {
         return  correspondenceMessages;
     }
@@ -103,5 +107,14 @@ public class Database implements java.io.Serializable {
 
     public MessageList getMessages(int id1, int id2) {
         return correspondenceMessages.get(id1).get(id2).get(0);
+    }
+
+    @Override
+    public String toString() {
+        return "Database{" +
+                "correspondenceMessages=" + correspondenceMessages +
+                ", users=" + users +
+                ", userStatus=" + userStatus +
+                '}';
     }
 }

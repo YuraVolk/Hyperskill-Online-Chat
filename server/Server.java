@@ -42,7 +42,8 @@ public class Server {
             fileIn.close();
             database = base;
         } catch (Exception i) {
-
+            database.addUserChat("admin", "12345678");
+            database.addAdministrator("admin");
         }
 
 
@@ -74,8 +75,7 @@ public class Server {
          * thread.
          */
 
-        database.addUserChat("admin", "12345678");
-        database.addAdministrator("admin");
+
 
         int clientNum = 1;
         while (true) {
@@ -210,7 +210,7 @@ class clientThread extends Thread implements Comparable<clientThread> {
             /* Start the conversation. */
 
             while (true) {
-
+                System.out.println(Server.database);
             /*  this.os.writeObject("");
                 this.os.flush();*/
                /* System.out.println(Server.database.getCorrespondenceMessages());
@@ -244,15 +244,18 @@ class clientThread extends Thread implements Comparable<clientThread> {
                     }
                 } else if (line.startsWith("/auth")) {
                     String[] words = line.split(" ");
-
-
                     if (Server.database.usernameExists(words[1])) {
                         if (Server.database.getPassword(words[1]).equals(words[2])) {
-                            authorized = true;
-                            this.os.writeObject("Server: you are authorized successfully!");
-                            name = words[1];
-                            clientName = words[1];
-                            thisId = Server.database.getUserPosition(clientName);
+                            if (Server.database.isBanned(words[1])) {
+                                this.os.writeObject("Server: you are banned!");
+                            } else {
+                                authorized = true;
+                                this.os.writeObject("Server: you are authorized successfully!");
+                                name = words[1];
+                                clientName = words[1];
+                                thisId = Server.database.getUserPosition(clientName);
+                            }
+
                         } else {
                             this.os.writeObject("Server: incorrect password!");
                         }
@@ -325,6 +328,55 @@ class clientThread extends Thread implements Comparable<clientThread> {
                                         thread.os.writeObject("Server: you have been kicked out of the server!");
                                     }
                                 }
+                                Server.database.ban(words[1]);
+                            }
+
+                            this.os.flush();
+                        }
+                    }
+                } else if (line.startsWith("/grant")) {
+                    if (!authorized) {
+                        this.os.writeObject("Server: you are not in the chat!");
+                    } else {
+                        String[] words = line.split(" ", 2);
+                        System.out.println(Server.database.getUserStatus(this.clientName));
+                        if (!Server.database.getUserStatus(this.clientName).equals("admin")) {
+                            this.os.writeObject("Server: you are not an admin!");
+                        } else {
+                            if (Server.database.getUserStatus(words[1]).equals("moderator")) {
+                                this.os.writeObject("Server: this user is already a moderator!");
+                            } else {
+                                this.os.writeObject(String.format("Server: %s as the new moderator!", words[1]));
+                                for (clientThread thread : clients) {
+                                    if (thread.clientName.equals(words[1])) {
+                                        thread.os.writeObject("Server: you are the new moderator now!");
+                                    }
+                                }
+                                Server.database.addModerator(words[1]);
+                            }
+
+                            this.os.flush();
+                        }
+                    }
+                } else if (line.startsWith("/revoke")) {
+                    if (!authorized) {
+                        this.os.writeObject("Server: you are not in the chat!");
+                    } else {
+                        String[] words = line.split(" ", 2);
+                        System.out.println(Server.database.getUserStatus(this.clientName));
+                        if (!Server.database.getUserStatus(this.clientName).equals("admin")) {
+                            this.os.writeObject("Server: you are not an admin!");
+                        } else {
+                            if (!Server.database.getUserStatus(words[1]).equals("moderator")) {
+                                this.os.writeObject("Server: this user is not a moderator!");
+                            } else {
+                                this.os.writeObject(String.format("Server: %s is no longer moderator!", words[1]));
+                                for (clientThread thread : clients) {
+                                    if (thread.clientName.equals(words[1])) {
+                                        thread.os.writeObject("Server: you are no longer a moderator!");
+                                    }
+                                }
+                                Server.database.removeModerator(words[1]);
                             }
 
                             this.os.flush();
