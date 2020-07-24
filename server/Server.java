@@ -444,6 +444,23 @@ class clientThread extends Thread implements Comparable<clientThread> {
                         }
 
                     }
+                } else if (line.startsWith("/unread")) {
+                    if (!authorized) {
+                        this.os.writeObject("Server: you are not in the chat!");
+                    } else {
+                        List<String> unread = Server.database.getUnreadMessages(thisId);
+
+
+                        if (unread.size() == 0) {
+                            this.os.writeObject("Server: no one unread");
+                        } else {
+                            String unreadNames = String.join(" ", unread);
+                            this.os.writeObject("Server: unread from: " + unreadNames);
+                        }
+
+                        this.os.flush();
+
+                    }
                 } else if (line.startsWith("/")) {
                     this.os.writeObject("Server: incorrect command!");
                     this.os.flush();

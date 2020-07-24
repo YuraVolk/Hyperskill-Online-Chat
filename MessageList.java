@@ -59,6 +59,16 @@ public class MessageList implements Serializable {
         return messagesList;
     }
 
+    public boolean containsUnread() {
+        for (Message message : messagesList) {
+            if (message.isUnread()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     @Override
     public String toString() {
         return "MessageList{" +

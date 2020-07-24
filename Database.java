@@ -1,5 +1,7 @@
 package chat;
 
+import javafx.util.Pair;
+
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
@@ -116,5 +118,18 @@ public class Database implements java.io.Serializable {
                 ", users=" + users +
                 ", userStatus=" + userStatus +
                 '}';
+    }
+
+    public List<String> getUnreadMessages(int id) {
+        List<String> unreadMessages = new ArrayList<>();
+
+        for (int i = 0; i < correspondenceMessages.size(); i++) {
+            if (correspondenceMessages.get(id).get(i).get(0).containsUnread()) {
+                unreadMessages.add((String) users.keySet().toArray()[i]);
+            }
+
+        }
+
+        return unreadMessages;
     }
 }
