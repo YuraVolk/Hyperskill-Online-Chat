@@ -11,6 +11,8 @@ import java.net.Socket;
 import java.util.*;
 
 import java.net.ServerSocket;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /*
  * A chat server that delivers public and private messages and files.
@@ -50,8 +52,6 @@ public class Server {
 
         if (args.length < 1)
         {
-
-            //System.out.println("No port specified by user.\nServer is running using default port number=" + portNumber);
 
         }
         else
@@ -181,8 +181,6 @@ class clientThread extends Thread implements Comparable<clientThread> {
         //    System.out.println(Server.database.getCorrespondenceMessages());
             //System.out.println("Client Name is " + name);
 
-                /*this.os.writeObject("*** Welcome " + name + " to our chat room ***\nEnter /quit to leave the chat room");
-                this.os.flush();*/
 
                 /*this.os.writeObject("Directory Created");
                 this.os.flush();*/
@@ -281,8 +279,37 @@ class clientThread extends Thread implements Comparable<clientThread> {
                             chateeName = words[1];
                             MessageList messageList = Server.database.getMessages(thisId, receptientId);
                          //   System.out.println(messageList);
+                           /* List<MessageList.Message> lastMessages = messageList.getMessagesList().subList(
+                                    Math.max(messageList.getMessagesList().size() - 10, 0),
+                                    messageList.getMessagesList().size());*/
+
+                           List<MessageList.Message> messages = new ArrayList<>();
+                           List<MessageList.Message> unreadMessages = new ArrayList<>();
+
                             for (MessageList.Message messageObject : messageList.getMessagesList()) {
-                                this.os.writeObject(messageObject.getMessage());
+                                if (messageObject.isUnread()) {
+                                    unreadMessages.add(messageObject);
+                                } else {
+                                    messages.add(messageObject);
+                                }
+                            /*   this.os.writeObject(messageObject.getMessage());
+                                this.os.flush();*/
+                            }
+
+                            List<MessageList.Message> finalMessages = Stream.concat(messages.stream(),
+                                    unreadMessages.stream())
+                                    .collect(Collectors.toList());
+
+                            finalMessages = finalMessages.subList(Math.max(finalMessages.size() - 25, 0),
+                                    finalMessages.size());
+
+                            System.out.println(messages);
+                            System.out.println(unreadMessages);
+                            System.out.println(finalMessages);
+
+                            for (MessageList.Message message : finalMessages) {
+                                this.os.writeObject(message.getMessage());
+                                message.setRead();
                                 this.os.flush();
                             }
                         }
@@ -320,6 +347,7 @@ class clientThread extends Thread implements Comparable<clientThread> {
                         } else {
                             if (words[1].equals(this.clientName)) {
                                 this.os.writeObject("Server: you can’t kick yourself!");
+                                this.os.flush();
                             } else {
                                 this.os.writeObject(String.format("Server: %s was kicked!", words[1]));
                                 for (clientThread thread : clients) {
@@ -331,9 +359,9 @@ class clientThread extends Thread implements Comparable<clientThread> {
                                 Server.database.ban(words[1]);
                             }
 
-                            this.os.flush();
                         }
                     }
+                    this.os.flush();
                 } else if (line.startsWith("/grant")) {
                     if (!authorized) {
                         this.os.writeObject("Server: you are not in the chat!");
@@ -355,9 +383,10 @@ class clientThread extends Thread implements Comparable<clientThread> {
                                 Server.database.addModerator(words[1]);
                             }
 
-                            this.os.flush();
+
                         }
                     }
+                    this.os.flush();
                 } else if (line.startsWith("/revoke")) {
                     if (!authorized) {
                         this.os.writeObject("Server: you are not in the chat!");
@@ -379,8 +408,41 @@ class clientThread extends Thread implements Comparable<clientThread> {
                                 Server.database.removeModerator(words[1]);
                             }
 
-                            this.os.flush();
                         }
+                    }
+                    this.os.flush();
+                } else if (line.startsWith("/history")) {
+                    if (!authorized) {
+                        this.os.writeObject("Server: you are not in the chat!");
+                    } else {
+                        String[] words = line.split(" ", 2);
+
+                        if (!words[1].matches("-?\\d+(.\\d+)?")) {
+                            this.os.writeObject(String.format("Server: %s is not a number!", words[1]));
+                            this.os.flush();
+                        } else {
+                            int number = Integer.parseInt(words[1]);
+
+                            if (number > 25) {
+                                number = 25;
+                            }
+
+                            MessageList messageList = Server.database.getMessages(thisId, receptientId);
+
+                            if (number > messageList.getMessagesList().size()) {
+                                number = messageList.getMessagesList().size();
+                            }
+
+                            List<MessageList.Message> lastMessages = messageList.getMessagesList().subList(
+                                    Math.max(messageList.getMessagesList().size() - number, 0),
+                                    messageList.getMessagesList().size());
+
+                            for (MessageList.Message messageObject : lastMessages) {
+                                this.os.writeObject(messageObject.getMessage());
+                                this.os.flush();
+                            }
+                        }
+
                     }
                 } else if (line.startsWith("/")) {
                     this.os.writeObject("Server: incorrect command!");
@@ -446,106 +508,24 @@ class clientThread extends Thread implements Comparable<clientThread> {
         }
     }
 
-
-
-    /**** This function transfers message or files to all the client except a particular client connected to the server ***/
-
-    void blockcast(String line, String name) throws IOException, ClassNotFoundException {
-
-        String[] words = line.split(":", 2);
-
-        /* Transferring a File to all the clients except a particular client */
-
-
-        if (words.length > 1 && words[1] != null) {
-            words[1] = words[1].trim();
-            if (!words[1].isEmpty()) {
-                synchronized (this){
-                    for (clientThread curr_client : clients) {
-                        if (curr_client != null && curr_client != this && curr_client.clientName != null
-                                && !curr_client.clientName.equals("@"+words[0].substring(1))) {
-                            curr_client.os.writeObject("<" + name + "> " + words[1]);
-                            curr_client.os.flush();
-
-
-                        }
-                    }
-                    /* Echo this message to let the user know the blocked message was sent.*/
-
-                    this.os.writeObject(">>Blockcast message sent to everyone except "+words[0].substring(1));
-                    this.os.flush();
-                    //  System.out.println("Message sent by "+ this.clientName.substring(1) + " to everyone except " + words[0].substring(1));
-                }
+    private boolean isUserOnline(String name) {
+        for (clientThread thread : clients) {
+            if (thread.authorized && thread.clientName.equals(name) && thread.chateeName.equals(this.clientName)) {
+                return true;
             }
         }
 
+        return false;
     }
 
-    /**** This function transfers message or files to all the client connected to the server ***/
-
-    void broadcast(String line, String name, boolean writeHistory) throws IOException, ClassNotFoundException {
-
-        if (writeHistory) {
-            Server.messages.add(new Pair<>(name, line));
-        }
-        /* Transferring a File to all the clients */
-
-        if (line.split("\\s")[0].toLowerCase().equals("sendfile"))
-        {
-
-            byte[] file_data = (byte[]) is.readObject();
-            synchronized(this){
-                for (clientThread curr_client : clients) {
-                    if (curr_client != null && curr_client.clientName != null)
-                    {
-                        curr_client.os.writeObject("Sending_File:"+line.split("\\s",2)[1].substring(line.split("\\s",2)[1].lastIndexOf(File.separator)+1));
-                        curr_client.os.writeObject(file_data);
-                        curr_client.os.flush();
-
-                    }
-                }
-
-                this.os.writeObject("Broadcast file sent successfully");
-                this.os.flush();
-                //System.out.println("Broadcast file sent by " + this.clientName.substring(1));
-            }
-        }
-
-        else
-        {
-            /* Transferring a message to all the clients */
-
-            synchronized(this){
-
-                for (clientThread curr_client : clients) {
-
-                    if (curr_client != null && curr_client.clientName != null)
-                    {
-
-                        curr_client.os.writeObject("" + name + ": " + line);
-                        curr_client.os.flush();
-
-                    }
-                }
-
-                //  this.os.writeObject("Broadcast message sent successfully.");
-                this.os.flush();
-                //  System.out.println("Broadcast message sent by " + this.clientName.substring(1));
-            }
-
-        }
-
-    }
-
-    /**** This function transfers message or files to a particular client connected to the server ***/
-
-    void unicast(String line, String name, int receptientId, int thisClientId) throws IOException, ClassNotFoundException {
+    void unicast(String line, String name, int receptientId, int thisClientId) throws IOException {
 
 
 
         /* Transferring File to a particular client */
 
-
+        Server.database.addMessage(this.clientName, line, thisClientId, receptientId,
+                isUserOnline(chateeName));
 
         for (clientThread curr_client : clients) {
 
@@ -556,12 +536,9 @@ class clientThread extends Thread implements Comparable<clientThread> {
                     curr_client.os.flush();
                 }
 
-                Server.database.addMessage(this.clientName, line, thisClientId, receptientId);
-                        /*  System.out.println(this.clientName.substring(1) + " transferred a private message to client "+ curr_client.clientName.substring(1));
 
-                            /* Echo this message to let the sender know the private message was sent.
 
-                            this.os.writeObject("Private Message sent to " + curr_client.clientName.substring(1));*/
+
                 this.os.flush();
                 break;
             }

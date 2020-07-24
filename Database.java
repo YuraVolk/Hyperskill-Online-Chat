@@ -90,9 +90,9 @@ public class Database implements java.io.Serializable {
         return -1;
     }
 
-    public void addMessage(String name, String line, int senderId, int addresseeId) throws IOException {
-        correspondenceMessages.get(senderId).get(addresseeId).get(0).addMessage(name, line);
-        correspondenceMessages.get(addresseeId).get(senderId).get(0).addMessage(name, line);
+    public void addMessage(String name, String line, int senderId, int addresseeId, boolean isUnread) throws IOException {
+        correspondenceMessages.get(senderId).get(addresseeId).get(0).addMessage(name, line, true);
+        correspondenceMessages.get(addresseeId).get(senderId).get(0).addMessage(name, line, isUnread);
         serialize();
     }
 
