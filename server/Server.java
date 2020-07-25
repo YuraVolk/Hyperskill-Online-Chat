@@ -3,7 +3,6 @@ package chat.server;
 import chat.Database;
 import chat.Message;
 import chat.MessageList;
-import javafx.util.Pair;
 
 import javax.xml.crypto.Data;
 import java.io.*;
@@ -24,7 +23,7 @@ public class Server {
     // The client socket.
     private static Socket clientSocket = null;
     public static Database database = new Database();
-    public static List<Pair<String, String>> messages = new ArrayList<>();
+
     public static ArrayList<clientThread> clients = new ArrayList<clientThread>();
 
 
@@ -208,7 +207,7 @@ class clientThread extends Thread implements Comparable<clientThread> {
             /* Start the conversation. */
 
             while (true) {
-                System.out.println(Server.database);
+
             /*  this.os.writeObject("");
                 this.os.flush();*/
                /* System.out.println(Server.database.getCorrespondenceMessages());
@@ -303,9 +302,6 @@ class clientThread extends Thread implements Comparable<clientThread> {
                             finalMessages = finalMessages.subList(Math.max(finalMessages.size() - 25, 0),
                                     finalMessages.size());
 
-                            System.out.println(messages);
-                            System.out.println(unreadMessages);
-                            System.out.println(finalMessages);
 
                             for (MessageList.Message message : finalMessages) {
                                 this.os.writeObject(message.getMessage());
@@ -340,61 +336,74 @@ class clientThread extends Thread implements Comparable<clientThread> {
                 } else if (line.startsWith("/kick")) {
                     if (!authorized) {
                         this.os.writeObject("Server: you are not in the chat!");
+                        this.os.flush();
                     } else {
                         String[] words = line.split(" ", 2);
                         if (Server.database.getUserStatus(this.clientName).equals("user")) {
-                            this.os.writeObject("Server: you are not a moderator or an admin!");
+                         /*   this.os.writeObject("Server: you are not a moderator or an admin!");
+                            this.os.flush(); */
                         } else {
                             if (words[1].equals(this.clientName)) {
                                 this.os.writeObject("Server: you can’t kick yourself!");
                                 this.os.flush();
                             } else {
-                                this.os.writeObject(String.format("Server: %s was kicked!", words[1]));
-                                for (clientThread thread : clients) {
-                                    if (thread.clientName.equals(words[1])) {
-                                        thread.authorized = false;
-                                        thread.os.writeObject("Server: you have been kicked out of the server!");
+                                if (Server.database.getUserStatus(this.clientName).equals("moderator")
+                                        && !Server.database.getUserStatus(words[1]).equals("user")) {
+
+                                } else {
+                                    this.os.writeObject(String.format("Server: %s was kicked!", words[1]));
+                                    for (clientThread thread : clients) {
+                                        if (thread != null && thread.clientName != null && thread.clientName.equals(words[1])) {
+                                            thread.authorized = false;
+                                            thread.os.writeObject("Server: you have been kicked out of the server!");
+                                        }
                                     }
+                                    Server.database.ban(words[1]);
+                                    this.os.flush();
                                 }
-                                Server.database.ban(words[1]);
+
                             }
 
                         }
                     }
-                    this.os.flush();
+
                 } else if (line.startsWith("/grant")) {
                     if (!authorized) {
                         this.os.writeObject("Server: you are not in the chat!");
+                        this.os.flush();
                     } else {
                         String[] words = line.split(" ", 2);
-                        System.out.println(Server.database.getUserStatus(this.clientName));
+
                         if (!Server.database.getUserStatus(this.clientName).equals("admin")) {
-                            this.os.writeObject("Server: you are not an admin!");
+                          //  this.os.writeObject("Server: you are not an admin!");
                         } else {
                             if (Server.database.getUserStatus(words[1]).equals("moderator")) {
                                 this.os.writeObject("Server: this user is already a moderator!");
                             } else {
-                                this.os.writeObject(String.format("Server: %s as the new moderator!", words[1]));
+                                this.os.writeObject(String.format("Server: %s is a new moderator!", words[1]));
+
                                 for (clientThread thread : clients) {
                                     if (thread.clientName.equals(words[1])) {
-                                        thread.os.writeObject("Server: you are the new moderator now!");
+                                        thread.os.writeObject("Server: you are a new moderator now!");
                                     }
                                 }
                                 Server.database.addModerator(words[1]);
                             }
+                            this.os.flush();
 
 
                         }
                     }
-                    this.os.flush();
+
                 } else if (line.startsWith("/revoke")) {
                     if (!authorized) {
                         this.os.writeObject("Server: you are not in the chat!");
+                        this.os.flush();
                     } else {
                         String[] words = line.split(" ", 2);
-                        System.out.println(Server.database.getUserStatus(this.clientName));
+
                         if (!Server.database.getUserStatus(this.clientName).equals("admin")) {
-                            this.os.writeObject("Server: you are not an admin!");
+                     //       this.os.writeObject("Server: you are not an admin!");
                         } else {
                             if (!Server.database.getUserStatus(words[1]).equals("moderator")) {
                                 this.os.writeObject("Server: this user is not a moderator!");
@@ -407,10 +416,10 @@ class clientThread extends Thread implements Comparable<clientThread> {
                                 }
                                 Server.database.removeModerator(words[1]);
                             }
-
+                            this.os.flush();
                         }
                     }
-                    this.os.flush();
+
                 } else if (line.startsWith("/history")) {
                     if (!authorized) {
                         this.os.writeObject("Server: you are not in the chat!");
@@ -460,6 +469,35 @@ class clientThread extends Thread implements Comparable<clientThread> {
 
                         this.os.flush();
 
+                    }
+                } else if (line.startsWith("/stats")) {
+                    if (!authorized) {
+                        this.os.writeObject("Server: you are not in the chat!");
+                    } else {
+                        List<MessageList.Message> messages = Server.database
+                                .getMessages(thisId, receptientId).getMessagesList();
+
+                        int totalCount = messages.size();
+                        int meCount = 0;
+                        int chateeCount = 0;
+
+                        for (MessageList.Message message : messages) {
+                            if (message.getSender().equals(this.clientName)) { // Messages from me
+                                meCount++;
+                            } else { // Messages from chatee
+                                chateeCount++;
+                            }
+                        }
+
+                        this.os.writeObject(String.format("Server:\n" +
+                                "Statistics with %s:\n" +
+                                "Total messages: %d\n" +
+                                "Messages from %s: %d\n" +
+                                "Messages from %s: %d",
+                                this.chateeName, totalCount,
+                                this.clientName, meCount,
+                                this.chateeName, chateeCount));
+                        this.os.flush();
                     }
                 } else if (line.startsWith("/")) {
                     this.os.writeObject("Server: incorrect command!");
@@ -549,7 +587,7 @@ class clientThread extends Thread implements Comparable<clientThread> {
             if (curr_client != null && curr_client.clientName != null
                     && curr_client.clientName.equals(name)) {
                 if (curr_client.chateeName.equals(this.clientName)) {
-                    curr_client.os.writeObject("" + this.clientName + ": " + line);
+                    curr_client.os.writeObject("(new) " + this.clientName + ": " + line);
                     curr_client.os.flush();
                 }
 

@@ -24,7 +24,7 @@ public class MessageList implements Serializable {
 
         public String getMessage() {
             if (isUnread) {
-                return "(new) " + sender + ": " + message;
+                return "" + sender + ": " + message;
             } else {
                 return sender + ": " + message;
             }
@@ -37,6 +37,10 @@ public class MessageList implements Serializable {
 
         public boolean isUnread() {
             return isUnread;
+        }
+
+        public String getSender() {
+            return sender;
         }
 
         @Override
