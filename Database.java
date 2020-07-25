@@ -1,6 +1,5 @@
 package chat;
 
-import javafx.util.Pair;
 
 import java.io.FileOutputStream;
 import java.io.IOException;

@@ -4,7 +4,6 @@ import chat.Database;
 import chat.Message;
 import chat.MessageList;
 
-import javax.xml.crypto.Data;
 import java.io.*;
 import java.net.Socket;
 import java.util.*;
@@ -56,8 +55,6 @@ public class Server {
         else
         {
             portNumber = Integer.valueOf(args[0]).intValue();
-
-            //System.out.println("Server is running using specified port number=" + portNumber);
         }
 
         /*
@@ -408,7 +405,7 @@ class clientThread extends Thread implements Comparable<clientThread> {
                             if (!Server.database.getUserStatus(words[1]).equals("moderator")) {
                                 this.os.writeObject("Server: this user is not a moderator!");
                             } else {
-                                this.os.writeObject(String.format("Server: %s is no longer moderator!", words[1]));
+                                this.os.writeObject(String.format("Server: %s is no longer a moderator!", words[1]));
                                 for (clientThread thread : clients) {
                                     if (thread.clientName.equals(words[1])) {
                                         thread.os.writeObject("Server: you are no longer a moderator!");
@@ -437,10 +434,6 @@ class clientThread extends Thread implements Comparable<clientThread> {
                             }
 
                             MessageList messageList = Server.database.getMessages(thisId, receptientId);
-
-                            if (number > messageList.getMessagesList().size()) {
-                                number = messageList.getMessagesList().size();
-                            }
 
                             List<MessageList.Message> lastMessages = messageList.getMessagesList().subList(
                                     Math.max(messageList.getMessagesList().size() - number, 0),
