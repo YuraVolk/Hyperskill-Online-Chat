@@ -1,7 +1,6 @@
 package chat.server;
 
 import chat.Database;
-import chat.Message;
 import chat.MessageList;
 
 import java.io.*;
@@ -22,8 +21,13 @@ public class Server {
     // The client socket.
     private static Socket clientSocket = null;
     public static Database database = new Database();
+    private static boolean isStopped = false;
 
     public static ArrayList<clientThread> clients = new ArrayList<clientThread>();
+
+    public static void stopAllProcesses() throws IOException {
+        isStopped = true;
+    }
 
 
     public static void main(String args[]) throws IOException {
@@ -62,6 +66,7 @@ public class Server {
          */
         try {
             serverSocket = new ServerSocket(portNumber);
+            serverSocket.setSoTimeout(2 * 1000);
         } catch (IOException e) {
         //    System.out.println("Server Socket cannot be created");
         }
@@ -75,9 +80,11 @@ public class Server {
 
         int clientNum = 1;
         while (true) {
+
             try {
 
                 clientSocket = serverSocket.accept();
+
                 clientThread curr_client =  new clientThread(clientSocket, clients);
                 clients.add(curr_client);
                 curr_client.start();
@@ -86,13 +93,16 @@ public class Server {
 
             } catch (IOException e) {
 
-             //   System.out.println("Client could not be connected");
+                break;
             }
 
 
         }
 
+
+        serverSocket.close();
     }
+
 }
 
 /*
@@ -352,7 +362,7 @@ class clientThread extends Thread implements Comparable<clientThread> {
                                     for (clientThread thread : clients) {
                                         if (thread != null && thread.clientName != null && thread.clientName.equals(words[1])) {
                                             thread.authorized = false;
-                                            thread.os.writeObject("Server: you have been kicked out of the server!");
+                                            thread.os.writeObject("Server: you have been kicked from the server!");
                                         }
                                     }
                                     Server.database.ban(words[1]);

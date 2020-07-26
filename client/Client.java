@@ -1,5 +1,7 @@
 package chat.client;
 
+import chat.server.Server;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -65,7 +67,12 @@ public class Client implements Runnable {
                 while (!closed) {
 
                     /* Read input from Client */
-                    msg = inputLine.readLine().trim();
+
+                    msg = inputLine.readLine();
+                    if (msg == null) {
+                        break;
+                    }
+                    msg = msg.trim();
 
                     /* Check the input for private messages or files */
 
